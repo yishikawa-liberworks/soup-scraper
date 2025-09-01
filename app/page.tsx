@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 
-const API = process.env.NEXT_PUBLIC_API_BASE!; // 例: https://xxx.execute-api.ap-northeast-1.amazonaws.com
+const API = "https://b06go6zl28.execute-api.ap-northeast-1.amazonaws.com"; // 例: https://xxx.execute-api.ap-northeast-1.amazonaws.com
 
 export default function Page() {
   const [owner, setOwner] = useState('vercel');

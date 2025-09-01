@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-const API = process.env.NEXT_PUBLIC_API_BASE!;
+const API = "https://b06go6zl28.execute-api.ap-northeast-1.amazonaws.com";
 
 type PresignResp = { uploadUrl: string; key: string; jobId: string; statusKey: string };
 type StatusResp = { jobId: string; state: string; percent?: number; outKey?: string; error?: string };
