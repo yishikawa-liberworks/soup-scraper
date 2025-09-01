@@ -49,8 +49,8 @@ export default function TranslatePage() {
 
       setKey(presign.key);
       setBucket(presign.bucket);
-    } catch (e: any) {
-      setError(String(e?.message ?? e));
+    } catch (e: unknown) {
+       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
@@ -62,8 +62,8 @@ export default function TranslatePage() {
       const r = await fetch(`${API}/status`);
       if (!r.ok) throw new Error(`status failed: ${r.status}`);
       setHealth(await r.json());
-    } catch (e: any) {
-      setError(String(e?.message ?? e));
+    } catch (e: unknown) {
+       setError(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -74,8 +74,8 @@ export default function TranslatePage() {
       if (!r.ok) throw new Error(`presign download failed: ${r.status}`);
       const { url } = await r.json() as { url: string };
       location.href = url; // 一時URLへ遷移
-    } catch (e: any) {
-      setError(String(e?.message ?? e));
+    } catch (e: unknown) {
+       setError(e instanceof Error ? e.message : String(e));
     }
   };
 
