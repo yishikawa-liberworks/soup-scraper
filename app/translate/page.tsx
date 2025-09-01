@@ -44,7 +44,7 @@ export default function TranslatePage() {
       // 3) ポーリング
       poll(presign.jobId);
     } catch (e) {
-      alert(String((e as any)?.message ?? e));
+      alert(String(e instanceof Error ? e.message : e));
     } finally {
       setBusy(false);
     }
