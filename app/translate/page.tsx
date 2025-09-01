@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 
-const API = process.env.NEXT_PUBLIC_API_BASE!; // Actionsで埋め込み必須
+const API = "https://b06go6zl28.execute-api.ap-northeast-1.amazonaws.com"; // Actionsで埋め込み必須
 
 type PresignUpload = { url: string; key: string; bucket: string; expiresIn: number };
 type Health = { status: string; bucket: string };
