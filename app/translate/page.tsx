@@ -42,7 +42,7 @@ export default function TranslatePage() {
       if (!r2.ok) throw new Error('s3 put failed');
 
       // 3) ポーリング
-      poll(presign.jobId);
+    //   poll(presign.jobId);
     } catch (e) {
       alert(String(e instanceof Error ? e.message : e));
     } finally {
@@ -50,28 +50,28 @@ export default function TranslatePage() {
     }
   };
 
-  const poll = (jobId: string) => {
-    if (timer.current) clearInterval(timer.current);
-    timer.current = setInterval(async () => {
-      const r = await fetch(`${API}/status?jobId=${encodeURIComponent(jobId)}`);
-      if (r.ok) {
-        const s = await r.json() as StatusResp;
-        setStatus(s);
-        if (s.state === 'COMPLETED' || s.state === 'FAILED') {
-          if (timer.current) clearInterval(timer.current);
-        }
-      }
-    }, 1500);
-  };
+//   const poll = (jobId: string) => {
+//     if (timer.current) clearInterval(timer.current);
+//     timer.current = setInterval(async () => {
+//       const r = await fetch(`${API}/status?jobId=${encodeURIComponent(jobId)}`);
+//       if (r.ok) {
+//         const s = await r.json() as StatusResp;
+//         setStatus(s);
+//         if (s.state === 'COMPLETED' || s.state === 'FAILED') {
+//           if (timer.current) clearInterval(timer.current);
+//         }
+//       }
+//     }, 1500);
+//   };
 
-  const downloadOut = async () => {
-    const outKey = status?.outKey ?? info?.outKey;
-    if (!outKey) return;
-    const r = await fetch(`${API}/presign/download?key=${encodeURIComponent(outKey)}`);
-    if (!r.ok) return;
-    const { url } = await r.json() as { url: string };
-    location.href = url;
-  };
+//   const downloadOut = async () => {
+//     const outKey = status?.outKey ?? info?.outKey;
+//     if (!outKey) return;
+//     const r = await fetch(`${API}/presign/download?key=${encodeURIComponent(outKey)}`);
+//     if (!r.ok) return;
+//     const { url } = await r.json() as { url: string };
+//     location.href = url;
+//   };
 
   return (
     <main className="p-6 max-w-2xl mx-auto space-y-4">
@@ -82,7 +82,7 @@ export default function TranslatePage() {
         {busy ? 'Uploading…' : 'アップロードして翻訳開始'}
       </button>
 
-      {info && <p className="text-sm">jobId: <code>{info.jobId}</code></p>}
+      {/* {info && <p className="text-sm">jobId: <code>{info.jobId}</code></p>} */}
 
       {status && (
         <div className="border p-3 rounded space-y-2">
