@@ -64,7 +64,7 @@ export default function Page() {
         {busy ? 'Downloading…' : 'CSV をダウンロード'}
       </button>
       {error && <p className="text-red-600">Error: {error}</p>}
-      <p className="text-sm opacity-70">※ これはクライアント側 fetch（App Router）。CORS は API 側で許可が必要です。</p>
+      <p className="text-sm opacity-70">※ これはクライアント側 fetch（App Router）。CORS は API 側で許可が必要です。 </p>
     </main>
   );
 }
