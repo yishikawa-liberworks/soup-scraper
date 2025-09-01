@@ -12,7 +12,7 @@ type StatusResp = { jobId: string; state: 'STARTED'|'RUNNING'|'COMPLETED'|'FAILE
 
 export default function TranslatePage() {
   const [file, setFile] = useState<File|null>(null);
-  const [info, setInfo] = useState<PresignResp|null>(null);
+//   const [info, setInfo] = useState<PresignResp|null>(null);
   const [status, setStatus] = useState<StatusResp|null>(null);
   const [busy, setBusy] = useState(false);
   const timer = useRef<ReturnType<typeof setInterval>|null>(null);
@@ -31,7 +31,7 @@ export default function TranslatePage() {
       });
       if (!r1.ok) throw new Error('presign failed');
       const presign = await r1.json() as PresignResp;
-      setInfo(presign);
+    //   setInfo(presign);
 
       // 2) S3 直PUT
       const r2 = await fetch(presign.url, {
