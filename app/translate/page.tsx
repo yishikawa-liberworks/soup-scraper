@@ -1,136 +1,100 @@
 // app/translate/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+const API = "https://b06go6zl28.execute-api.ap-northeast-1.amazonaws.com";
 
-const API = "https://b06go6zl28.execute-api.ap-northeast-1.amazonaws.com"; // Actionsで埋め込み必須
-
-type PresignUpload = { url: string; key: string; bucket: string; expiresIn: number };
-type Health = { status: string; bucket: string };
+type PresignResp = {
+  url: string; key: string; bucket: string; expiresIn: number;
+  jobId: string; statusKey: string; outKey: string;
+};
+type StatusResp = { jobId: string; state: 'STARTED'|'RUNNING'|'COMPLETED'|'FAILED'; percent?: number; outKey?: string; error?: string };
 
 export default function TranslatePage() {
-  const [file, setFile] = useState<File | null>(null);
+  const [file, setFile] = useState<File|null>(null);
+  const [info, setInfo] = useState<PresignResp|null>(null);
+  const [status, setStatus] = useState<StatusResp|null>(null);
   const [busy, setBusy] = useState(false);
-  const [key, setKey] = useState<string | null>(null);
-  const [bucket, setBucket] = useState<string | null>(null);
-  const [health, setHealth] = useState<Health | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const timer = useRef<ReturnType<typeof setInterval>|null>(null);
+  useEffect(() => () => { if (timer.current) clearInterval(timer.current); }, []);
 
   const start = async () => {
     if (!file) return;
-    if (!API) { setError('API base URL 未設定'); return; }
     setBusy(true);
-    setError(null);
-    setKey(null);
+    setStatus(null);
     try {
-      // 1) 署名付きURLを発行
-      const presignRes = await fetch(`${API}/presign/upload`, {
+      // 1) 署名URL
+      const r1 = await fetch(`${API}/presign/upload`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          filename: file.name,
-          contentType: file.type || 'application/octet-stream',
-        }),
+        body: JSON.stringify({ filename: file.name, contentType: file.type || 'text/csv' }),
       });
-      if (!presignRes.ok) {
-        const msg = await safeErr(presignRes);
-        throw new Error(`presign failed: ${presignRes.status} ${msg}`);
-      }
-      const presign = (await presignRes.json()) as PresignUpload;
-      if (!presign.url) throw new Error('presign response missing url');
+      if (!r1.ok) throw new Error('presign failed');
+      const presign = await r1.json() as PresignResp;
+      setInfo(presign);
 
-      // 2) 直接 S3 に PUT
-      const putRes = await fetch(presign.url, {
+      // 2) S3 直PUT
+      const r2 = await fetch(presign.url, {
         method: 'PUT',
-        headers: { 'Content-Type': file.type || 'application/octet-stream' },
+        headers: { 'Content-Type': file.type || 'text/csv' },
         body: file,
       });
-      if (!putRes.ok) throw new Error(`s3 put failed: ${putRes.status}`);
+      if (!r2.ok) throw new Error('s3 put failed');
 
-      setKey(presign.key);
-      setBucket(presign.bucket);
-    } catch (e: unknown) {
-       setError(e instanceof Error ? e.message : String(e));
+      // 3) ポーリング
+      poll(presign.jobId);
+    } catch (e) {
+      alert(String((e as any)?.message ?? e));
     } finally {
       setBusy(false);
     }
   };
 
-  const checkHealth = async () => {
-    setError(null);
-    try {
-      const r = await fetch(`${API}/status`);
-      if (!r.ok) throw new Error(`status failed: ${r.status}`);
-      setHealth(await r.json());
-    } catch (e: unknown) {
-       setError(e instanceof Error ? e.message : String(e));
-    }
+  const poll = (jobId: string) => {
+    if (timer.current) clearInterval(timer.current);
+    timer.current = setInterval(async () => {
+      const r = await fetch(`${API}/status?jobId=${encodeURIComponent(jobId)}`);
+      if (r.ok) {
+        const s = await r.json() as StatusResp;
+        setStatus(s);
+        if (s.state === 'COMPLETED' || s.state === 'FAILED') {
+          if (timer.current) clearInterval(timer.current);
+        }
+      }
+    }, 1500);
   };
 
-  const downloadUploaded = async () => {
-    if (!key) return;
-    try {
-      const r = await fetch(`${API}/presign/download?key=${encodeURIComponent(key)}`);
-      if (!r.ok) throw new Error(`presign download failed: ${r.status}`);
-      const { url } = await r.json() as { url: string };
-      location.href = url; // 一時URLへ遷移
-    } catch (e: unknown) {
-       setError(e instanceof Error ? e.message : String(e));
-    }
+  const downloadOut = async () => {
+    const outKey = status?.outKey ?? info?.outKey;
+    if (!outKey) return;
+    const r = await fetch(`${API}/presign/download?key=${encodeURIComponent(outKey)}`);
+    if (!r.ok) return;
+    const { url } = await r.json() as { url: string };
+    location.href = url;
   };
 
   return (
     <main className="p-6 max-w-2xl mx-auto space-y-4">
-      <h1 className="text-2xl font-bold">CSV アップロード（S3 直PUT）</h1>
+      <h1 className="text-2xl font-bold">翻訳CSV（S3 経由）</h1>
+      <input type="file" accept=".csv" onChange={e=>setFile(e.target.files?.[0] ?? null)} />
+      <button onClick={start} disabled={!file || busy}
+              className="px-4 py-2 rounded bg-black text-white disabled:opacity-50">
+        {busy ? 'Uploading…' : 'アップロードして翻訳開始'}
+      </button>
 
-      <div className="space-y-2">
-        <input
-          type="file"
-          accept=".csv"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-        />
-        <button
-          onClick={start}
-          disabled={!file || busy}
-          className="px-4 py-2 rounded bg-black text-white disabled:opacity-50"
-        >
-          {busy ? 'Uploading…' : 'アップロード'}
-        </button>
-        <button
-          onClick={checkHealth}
-          className="ml-2 px-3 py-2 rounded border"
-          type="button"
-        >
-          ヘルスチェック
-        </button>
-      </div>
+      {info && <p className="text-sm">jobId: <code>{info.jobId}</code></p>}
 
-      {error && <p className="text-sm text-red-600">Error: {error}</p>}
-
-      {bucket && key && (
+      {status && (
         <div className="border p-3 rounded space-y-2">
-          <p>bucket: <code>{bucket}</code></p>
-          <p>key: <code className="break-all">{key}</code></p>
-          <button
-            onClick={downloadUploaded}
-            className="px-3 py-2 rounded bg-green-600 text-white"
-          >
-            （確認用）アップロードしたCSVをダウンロード
-          </button>
-        </div>
-      )}
-
-      {health && (
-        <div className="border p-3 rounded">
-          <p>status: <b>{health.status}</b></p>
-          <p>bucket: <code>{health.bucket}</code></p>
+          <p>state: <b>{status.state}</b>{status.percent != null ? ` (${status.percent}%)` : ''}</p>
+          {status.error && <p className="text-red-600">error: {status.error}</p>}
+          {status.state === 'COMPLETED' && (
+            <button onClick={downloadOut} className="px-3 py-2 rounded bg-green-600 text-white">
+              出力CSVをダウンロード
+            </button>
+          )}
         </div>
       )}
     </main>
   );
-}
-
-async function safeErr(res: Response) {
-  try { const j = await res.json(); return j?.error || j?.message || ''; }
-  catch { return ''; }
 }
