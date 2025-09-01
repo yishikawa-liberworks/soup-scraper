@@ -12,7 +12,7 @@ export default function TranslatePage() {
   const [job, setJob] = useState<PresignResp | null>(null);
   const [status, setStatus] = useState<StatusResp | null>(null);
   const [busy, setBusy] = useState(false);
-  const timer = useRef<any>(null);
+  const timer = useRef<NodeJS.Timeout | null>(null);
 
   const start = async () => {
     if (!file) return;
@@ -38,15 +38,15 @@ export default function TranslatePage() {
   };
 
   const poll = async (jobId: string) => {
-    clearInterval(timer.current);
+    if (timer.current) clearInterval(timer.current);
     timer.current = setInterval(async () => {
       const s = await fetch(`${API}/status?jobId=${encodeURIComponent(jobId)}`).then(r => r.json()) as StatusResp;
       setStatus(s);
-      if (s.state === 'COMPLETED' || s.state === 'FAILED') clearInterval(timer.current);
+      if ((s.state === 'COMPLETED' || s.state === 'FAILED') && timer.current) clearInterval(timer.current);
     }, 2000);
   };
 
-  useEffect(() => () => clearInterval(timer.current), []);
+  useEffect(() => () => { if (timer.current) clearInterval(timer.current); }, []);
 
   const downloadOut = async () => {
     if (!status?.outKey) return;
