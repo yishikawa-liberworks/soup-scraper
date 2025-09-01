@@ -86,13 +86,14 @@ export default function TranslatePage() {
 
       {status && (
         <div className="border p-3 rounded space-y-2">
-          <p>state: <b>{status.state}</b>{status.percent != null ? ` (${status.percent}%)` : ''}</p>
+          {/* <p>state: <b>{status.state}</b>{status.percent != null ? ` (${status.percent}%)` : ''}</p> */}
+          <p>完了したらTeamsで通知します</p>
           {status.error && <p className="text-red-600">error: {status.error}</p>}
-          {status.state === 'COMPLETED' && (
+          {/* {status.state === 'COMPLETED' && (
             <button onClick={downloadOut} className="px-3 py-2 rounded bg-green-600 text-white">
               出力CSVをダウンロード
             </button>
-          )}
+          )} */}
         </div>
       )}
     </main>
